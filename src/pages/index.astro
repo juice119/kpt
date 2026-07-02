@@ -1,17 +1,252 @@
 ---
 import { getCollection } from 'astro:content';
 import WikiLayout from '../layouts/WikiLayout.astro';
+import KptCards from '../components/KptCards.astro';
+import {
+  shortDate,
+  koWeekdayFull,
+  isoDate,
+  computeStreak,
+  retroPath,
+} from '../lib/format';
 
-// STEP 4 확인용 — 레이아웃 셸 검증. STEP 5에서 1a 홈 콘텐츠로 채웁니다.
-const retros = (await getCollection('retros'))
+const all = (await getCollection('retros'))
   .filter((r) => !r.data.draft)
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const latest = all[0];
+const recent = all.slice(1, 9);
+
+// ── 통계 (실제 데이터 기반) ──
+const total = all.length;
+const thisMonth = latest
+  ? all.filter(
+      (r) =>
+        r.data.date.getUTCFullYear() === latest.data.date.getUTCFullYear() &&
+        r.data.date.getUTCMonth() === latest.data.date.getUTCMonth(),
+    ).length
+  : 0;
+const streak = computeStreak(all.map((r) => r.data.date));
+
+const todayIso = isoDate(new Date());
+const latestIsToday = latest ? isoDate(latest.data.date) === todayIso : false;
+
+// 최근 회고 요약 & KPT 유무 점
+const dots = (r: (typeof all)[number]) =>
+  (['keep', 'problem', 'try'] as const).filter((k) => r.data[k]);
+const summary = (r: (typeof all)[number]) =>
+  r.data.title ?? r.data.keep ?? r.data.problem ?? r.data.try ?? '';
 ---
 
 <WikiLayout title="회고 위키">
-  <h1 style="margin:0;font-size:25px;font-weight:800;letter-spacing:-.02em">회고 위키</h1>
-  <p style="margin:8px 0 0;font-size:14px;color:var(--text-2)">매일의 Keep · Problem · Try 기록</p>
-  <p style="margin-top:20px;color:var(--text-3);font-size:13px">
-    (레이아웃 셸 확인용 — 회고 {retros.length}개 · STEP 5에서 홈 콘텐츠 구현)
-  </p>
+  {/* ── 헤더 + 통계 ── */}
+  <div class="head">
+    <div>
+      <h1 class="head-title">회고 위키</h1>
+      <p class="head-sub">매일의 Keep · Problem · Try 기록</p>
+    </div>
+    <div class="stats">
+      <div class="stat stat-accent">
+        <div class="stat-num">{streak}일</div>
+        <div class="stat-cap">연속 작성</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">{thisMonth}</div>
+        <div class="stat-cap">이번 달</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">{total}</div>
+        <div class="stat-cap">전체 회고</div>
+      </div>
+    </div>
+  </div>
+
+  {
+    latest ? (
+      <>
+        {/* ── 오늘(최신) 회고 ── */}
+        <article class="latest">
+          <a class="latest-head" href={retroPath(latest.id)}>
+            <span class="latest-date">{shortDate(latest.data.date)}</span>
+            <span class="latest-meta">
+              {koWeekdayFull(latest.data.date)}
+              {latestIsToday ? ' · 오늘' : ''}
+            </span>
+          </a>
+          <KptCards
+            keep={latest.data.keep}
+            problem={latest.data.problem}
+            try={latest.data.try}
+          />
+        </article>
+
+        {/* ── 최근 회고 ── */}
+        {recent.length > 0 && (
+          <section class="recent">
+            <div class="recent-label">최근 회고</div>
+            {recent.map((r) => (
+              <a class="recent-row" href={retroPath(r.id)}>
+                <span class="recent-date">{shortDate(r.data.date)}</span>
+                <span class="recent-summary">{summary(r)}</span>
+                <span class="recent-dots">
+                  {dots(r).map((k) => (
+                    <span class="rdot" style={`background:var(--${k})`} />
+                  ))}
+                </span>
+              </a>
+            ))}
+          </section>
+        )}
+      </>
+    ) : (
+      <p class="empty">
+        아직 회고가 없습니다. <code>src/content/retros/</code>에 첫 번째 <code>.md</code> 파일을 추가해 보세요.
+      </p>
+    )
+  }
 </WikiLayout>
+
+<style>
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+  .head-title {
+    margin: 0;
+    font-size: 25px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .head-sub {
+    margin: 8px 0 0;
+    font-size: 14px;
+    color: var(--text-2);
+  }
+
+  .stats {
+    display: flex;
+    align-items: stretch;
+    flex-shrink: 0;
+    border: 1px solid var(--border-strong);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .stat {
+    padding: 13px 22px;
+    background: var(--surface);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .stat + .stat {
+    border-left: 1px solid var(--border);
+  }
+  .stat-accent {
+    background: var(--accent-soft);
+  }
+  .stat-num {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .stat-accent .stat-num {
+    color: var(--accent-strong);
+  }
+  .stat-cap {
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 5px;
+  }
+  .stat-accent .stat-cap {
+    color: var(--accent-strong);
+    font-weight: 700;
+  }
+
+  .latest {
+    display: flex;
+    flex-direction: column;
+    padding: 22px 0 20px;
+    border-top: 1px solid var(--border);
+  }
+  .latest-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .latest-date {
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .latest-meta {
+    font-size: 13px;
+    color: var(--text-2);
+  }
+
+  .recent {
+    display: flex;
+    flex-direction: column;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .recent-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--text-3);
+    margin-bottom: 8px;
+  }
+  .recent-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 12px;
+    border-radius: 9px;
+  }
+  .recent-row:hover {
+    background: var(--surface-2);
+  }
+  .recent-date {
+    font-size: 13px;
+    font-weight: 700;
+    width: 46px;
+    flex-shrink: 0;
+  }
+  .recent-summary {
+    font-size: 13px;
+    color: var(--text-2);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .recent-dots {
+    display: flex;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+  .rdot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  .empty {
+    color: var(--text-2);
+    font-size: 14px;
+  }
+  .empty code {
+    background: var(--surface-2);
+    padding: 2px 6px;
+    border-radius: 5px;
+    font-size: 12.5px;
+  }
+</style>

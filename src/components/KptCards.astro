@@ -1,0 +1,82 @@
+---
+interface Props {
+  keep?: string;
+  problem?: string;
+  try?: string;
+}
+
+const { keep, problem, try: tryText } = Astro.props;
+
+const cards = [
+  { label: 'KEEP', tone: 'keep', text: keep },
+  { label: 'PROBLEM', tone: 'problem', text: problem },
+  { label: 'TRY', tone: 'try', text: tryText },
+] as const;
+---
+
+<div class="kpt-grid">
+  {
+    cards.map((c) => (
+      <div class="kpt-card">
+        <div class="kpt-head">
+          <span class="kpt-dot" style={`background:var(--${c.tone})`} />
+          <span class="kpt-name" style={`color:var(--${c.tone})`}>
+            {c.label}
+          </span>
+        </div>
+        <p class="kpt-text" data-empty={!c.text}>
+          {c.text ?? '작성되지 않음'}
+        </p>
+      </div>
+    ))
+  }
+</div>
+
+<style>
+  .kpt-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    align-items: stretch;
+  }
+  .kpt-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+  }
+  .kpt-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .kpt-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+  .kpt-name {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+  }
+  .kpt-text {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--text);
+    white-space: pre-line;
+  }
+  .kpt-text[data-empty='true'] {
+    color: var(--text-3);
+  }
+
+  @media (max-width: 720px) {
+    .kpt-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

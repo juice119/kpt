@@ -1,8 +1,41 @@
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'] as const;
+const WEEKDAYS_FULL = [
+  '일요일',
+  '월요일',
+  '화요일',
+  '수요일',
+  '목요일',
+  '금요일',
+  '토요일',
+] as const;
 
 /** 요일 (한 글자). date-only 파싱은 UTC 자정이므로 UTC 게터로 일관되게 처리 */
 export function koWeekday(d: Date): string {
   return WEEKDAYS[d.getUTCDay()];
+}
+
+/** 요일 (풀네임): "수요일" */
+export function koWeekdayFull(d: Date): string {
+  return WEEKDAYS_FULL[d.getUTCDay()];
+}
+
+/** 최근 기록일부터 하루씩 이어진 연속 작성일 수 */
+export function computeStreak(dates: Date[]): number {
+  if (dates.length === 0) return 0;
+  const days = [...new Set(dates.map(isoDate))].sort().reverse(); // 최신순
+  let streak = 1;
+  let prev = new Date(`${days[0]}T00:00:00Z`);
+  for (let i = 1; i < days.length; i++) {
+    const cur = new Date(`${days[i]}T00:00:00Z`);
+    const diffDays = (prev.getTime() - cur.getTime()) / 86_400_000;
+    if (diffDays === 1) {
+      streak++;
+      prev = cur;
+    } else {
+      break;
+    }
+  }
+  return streak;
 }
 
 /** 2026-07-01 → "2026-07-01" (사이트 전역에서 slug/키로 사용) */
