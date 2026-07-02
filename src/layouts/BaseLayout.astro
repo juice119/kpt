@@ -1,0 +1,53 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title = '회고 위키', description = '매일의 Keep · Problem · Try 기록' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>📝</text></svg>" />
+    <title>{title}</title>
+
+    {/* FOUC 방지: 페인트 전에 테마를 먼저 확정한다. localStorage 우선, 없으면 OS 설정 따름 */}
+    <script is:inline>
+      (function () {
+        try {
+          var stored = localStorage.getItem('theme');
+          var theme =
+            stored ||
+            (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+
+        // 사이트 전역 토글 헬퍼 (사이드바 버튼에서 호출)
+        window.__setTheme = function (t) {
+          document.documentElement.setAttribute('data-theme', t);
+          try {
+            localStorage.setItem('theme', t);
+          } catch (e) {}
+          document.dispatchEvent(new CustomEvent('themechange', { detail: t }));
+        };
+        window.__toggleTheme = function () {
+          var cur =
+            document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+          window.__setTheme(cur === 'dark' ? 'light' : 'dark');
+        };
+      })();
+    </script>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

@@ -1,0 +1,85 @@
+/* Pretendard — 1a 목업과 동일 폰트 */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+
+/* ── 라이트 테마 토큰 (연초록 + 화이트) : 1a (인쇄용).dc.html 그대로 ── */
+:root {
+  --canvas: #e7efe9;
+  --bg: #f4f8f5;
+  --surface: #ffffff;
+  --surface-2: #eef4ef;
+  --sidebar: #eff5f1;
+  --border: rgba(24, 55, 38, 0.1);
+  --border-strong: rgba(24, 55, 38, 0.16);
+  --text: #18251f;
+  --text-2: #586b61;
+  --text-3: #8b9a91;
+  --accent: #3aa079;
+  --accent-strong: #2c8563;
+  --accent-soft: #e3f1ea;
+  --keep: #3aa079;
+  --keep-soft: #e3f1ea;
+  --problem: #c67c48;
+  --problem-soft: #f6ece2;
+  --try: #4d84c4;
+  --try-soft: #e6eef7;
+  --shadow: 0 1px 3px rgba(20, 50, 35, 0.06), 0 10px 30px rgba(20, 50, 35, 0.06);
+  color-scheme: light;
+}
+
+/* ── 다크 테마 토큰 (딥 그린 + 밝은 연초록 accent) ── */
+html[data-theme='dark'] {
+  --canvas: #0a0f0c;
+  --bg: #0f1512;
+  --surface: #161d18;
+  --surface-2: #1b231d;
+  --sidebar: #121814;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.15);
+  --text: #e7efe9;
+  --text-2: #9fb0a7;
+  --text-3: #6b7c73;
+  --accent: #5fc79a;
+  --accent-strong: #7ad3ab;
+  --accent-soft: rgba(95, 199, 154, 0.14);
+  --keep: #5fc79a;
+  --keep-soft: rgba(95, 199, 154, 0.14);
+  --problem: #d79b62;
+  --problem-soft: rgba(215, 155, 98, 0.15);
+  --try: #7fb0e0;
+  --try-soft: rgba(127, 176, 224, 0.15);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 12px 34px rgba(0, 0, 0, 0.4);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--text);
+  font-family: 'Pretendard', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition:
+    background 0.25s ease,
+    color 0.25s ease;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* 테마 전환 시 색상 트랜지션 (사용자가 모션 최소화를 켰으면 끔) */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}

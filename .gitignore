@@ -11,3 +11,5 @@ npm-debug.log*
 .env.production
 # macOS
 .DS_Store
+# Claude Code personal settings (launch.json은 공유)
+.claude/settings.local.json
