@@ -1,0 +1,28 @@
+---
+import { getCollection } from 'astro:content';
+
+// STEP 2 확인용 임시 페이지 — STEP 5에서 1a 디자인으로 교체됩니다.
+const retros = (await getCollection('retros'))
+  .filter((r) => !r.data.draft)
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+---
+
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>회고 위키 (scaffold check)</title>
+  </head>
+  <body>
+    <h1>회고 위키 — 콘텐츠 로드 확인</h1>
+    <p>총 {retros.length}개 회고</p>
+    <ul>
+      {
+        retros.map((r) => (
+          <li>
+            {r.data.date.toISOString().slice(0, 10)} — {r.data.title ?? '(제목 없음)'} · 태그: {r.data.tags.join(', ')}
+          </li>
+        ))
+      }
+    </ul>
+  </body>
+</html>
