@@ -77,6 +77,14 @@ a {
   text-decoration: none;
 }
 
+/* 테마별 표시 전환 (다크모드 토글 라벨 등) */
+html[data-theme='dark'] .only-light {
+  display: none !important;
+}
+html:not([data-theme='dark']) .only-dark {
+  display: none !important;
+}
+
 /* 테마 전환 시 색상 트랜지션 (사용자가 모션 최소화를 켰으면 끔) */
 @media (prefers-reduced-motion: reduce) {
   * {

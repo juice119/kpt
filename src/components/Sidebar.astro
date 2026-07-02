@@ -1,0 +1,213 @@
+---
+import { getCollection } from 'astro:content';
+import { monthLabel, dayLabel, retroPath, homePath } from '../lib/format';
+
+const active = Astro.url.pathname;
+
+const retros = (await getCollection('retros'))
+  .filter((r) => !r.data.draft)
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+// 월별 그룹핑 (최신순)
+type Group = { label: string; items: typeof retros };
+const groups: Group[] = [];
+for (const r of retros) {
+  const label = monthLabel(r.data.date);
+  let g = groups.find((x) => x.label === label);
+  if (!g) {
+    g = { label, items: [] };
+    groups.push(g);
+  }
+  g.items.push(r);
+}
+
+const homeHref = homePath();
+const isHome = active === homeHref;
+const isActive = (id: string) => active === retroPath(id);
+---
+
+<aside class="sidebar">
+  <a class="brand" href={homeHref}>
+    <span class="brand-logo">📝</span>
+    <span>
+      <span class="brand-title">회고 위키</span>
+      <span class="brand-sub">daily KPT</span>
+    </span>
+  </a>
+
+  <nav class="nav">
+    <a class={`nav-item ${isHome ? 'is-active' : ''}`} href={homeHref}>
+      <span class="dot"></span>홈
+    </a>
+  </nav>
+
+  <div class="datenav">
+    {
+      groups.map((g) => (
+        <div class="month">
+          <div class="month-label">{g.label}</div>
+          {g.items.map((r) => (
+            <a class={`dayrow ${isActive(r.id) ? 'is-active' : ''}`} href={retroPath(r.id)}>
+              {dayLabel(r.data.date)}
+            </a>
+          ))}
+        </div>
+      ))
+    }
+  </div>
+
+  <div class="theme-wrap">
+    <button class="theme-toggle" type="button" data-theme-toggle>
+      <span class="theme-label">
+        <span class="only-light">다크 모드</span>
+        <span class="only-dark">라이트 모드</span>
+      </span>
+      <span class="theme-dot"></span>
+    </button>
+  </div>
+</aside>
+
+<script>
+  document
+    .querySelector('[data-theme-toggle]')
+    ?.addEventListener('click', () => window.__toggleTheme?.());
+</script>
+
+<style>
+  .sidebar {
+    width: 250px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--sidebar);
+    border-right: 1px solid var(--border);
+    height: 100%;
+  }
+
+  .brand {
+    padding: 18px 16px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .brand-logo {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+  .brand-title {
+    display: block;
+    font-size: 14.5px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .brand-sub {
+    display: block;
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 1px;
+  }
+
+  .nav {
+    padding: 0 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    color: var(--text-2);
+    font-size: 13px;
+  }
+  .nav-item .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: transparent;
+  }
+  .nav-item:hover {
+    background: var(--surface-2);
+  }
+  .nav-item.is-active {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-weight: 600;
+  }
+  .nav-item.is-active .dot {
+    background: var(--accent);
+  }
+
+  .datenav {
+    flex: 1;
+    overflow: auto;
+    padding: 16px 10px 10px;
+  }
+  .month + .month {
+    margin-top: 6px;
+  }
+  .month-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--text-3);
+    padding: 8px 10px 6px;
+  }
+  .dayrow {
+    display: block;
+    padding: 6px 10px;
+    border-radius: 8px;
+    color: var(--text-2);
+    font-size: 12.5px;
+  }
+  .dayrow:hover {
+    background: var(--surface-2);
+  }
+  .dayrow.is-active {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-weight: 600;
+  }
+
+  .theme-wrap {
+    padding: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .theme-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 9px 11px;
+    cursor: pointer;
+    color: var(--text);
+    font-family: inherit;
+  }
+  .theme-toggle:hover {
+    background: var(--surface-2);
+  }
+  .theme-label {
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+  .theme-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--surface);
+    box-shadow: 0 0 0 1px var(--border);
+  }
+</style>
