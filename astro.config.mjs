@@ -1,9 +1,11 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 
-// NOTE: `site`/`base`는 GitHub Pages 배포(STEP 8)에서 확정합니다.
-// 프로젝트 페이지로 배포하면: site='https://<user>.github.io', base='/kpt-wiki'
+// 커스텀 도메인(kpt.juice119.io)으로 배포 → 도메인 루트 서빙.
+// 따라서 base는 기본값('/') 유지, site만 도메인으로 지정.
+// (커스텀 도메인은 public/CNAME 파일로 고정)
 export default defineConfig({
+  site: 'https://kpt.juice119.io',
   markdown: {
     shikiConfig: {
       themes: { light: 'github-light', dark: 'github-dark' },
