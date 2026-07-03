@@ -12,13 +12,10 @@ const retros = defineCollection({
     title: z.string().optional(),
     // 선택: 태그 (예: [배포, 협업])
     tags: z.array(z.string()).default([]),
-    // 선택: 대표 사진 경로 (예: /photos/2026-07-01/cover.jpg)
-    cover: z.string().optional(),
-    // 선택: 첨부 사진 목록
-    photos: z.array(z.string()).default([]),
     // 선택: 초안이면 true (빌드에서 제외)
     draft: z.boolean().default(false),
-    // KPT 내용은 프론트매터가 아니라 본문의 "# Keep / # Problem / # Try" 섹션에 작성합니다.
+    // KPT와 참고 이미지는 프론트매터가 아니라 본문 섹션에 작성합니다.
+    // "# Keep / # Problem / # Try" 및 "# 참고 이미지"(불릿으로 경로 나열)
   }),
 });
 

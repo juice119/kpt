@@ -3,7 +3,7 @@ import { getCollection } from 'astro:content';
 import type { CollectionEntry } from 'astro:content';
 import WikiLayout from '../../layouts/WikiLayout.astro';
 import KptCards from '../../components/KptCards.astro';
-import { renderKpt } from '../../lib/kpt';
+import { renderKpt, extractImages } from '../../lib/kpt';
 import {
   shortDate,
   koWeekdayFull,
@@ -40,7 +40,7 @@ const { data } = entry;
 const kpt = renderKpt(entry.body);
 
 const isToday = isoDate(data.date) === isoDate(new Date());
-const photos = [...(data.cover ? [data.cover] : []), ...data.photos];
+const images = extractImages(entry.body); // "# 참고 이미지" 섹션에서
 ---
 
 <WikiLayout title={`${shortDate(data.date)} ${data.title ?? '회고'} · 회고 위키`}>
@@ -74,15 +74,19 @@ const photos = [...(data.cover ? [data.cover] : []), ...data.photos];
   {/* KPT 3단 (본문 섹션에서 렌더) */}
   <KptCards keep={kpt.keep} problem={kpt.problem} try={kpt.try} />
 
-  {/* 첨부 사진 */}
+  {/* 참고 이미지 */}
   {
-    photos.length > 0 && (
+    images.length > 0 && (
       <section class="photos">
-        <div class="section-label">사진</div>
+        <div class="section-label">참고 이미지</div>
         <div class="photo-grid">
-          {photos.map((p, i) => (
+          {images.map((p, i) => (
             <a class="photo" href={asset(p)} target="_blank" rel="noopener">
-              <img src={asset(p)} alt={`${data.title ?? shortDate(data.date)} 사진 ${i + 1}`} loading="lazy" />
+              <img
+                src={asset(p)}
+                alt={`${data.title ?? shortDate(data.date)} 참고 이미지 ${i + 1}`}
+                loading="lazy"
+              />
             </a>
           ))}
         </div>
