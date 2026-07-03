@@ -23,6 +23,8 @@ jobs:
         uses: actions/checkout@v4
       - name: Build with Astro
         uses: withastro/action@v3 # 의존성 설치 + astro build + 아티팩트 업로드
+        with:
+          node-version: 22 # Astro 7은 Node >=22.12 필요 (기본 20이면 빌드 실패)
 
   deploy:
     needs: build
