@@ -1,8 +1,9 @@
 ---
-import { getCollection, render } from 'astro:content';
+import { getCollection } from 'astro:content';
 import type { CollectionEntry } from 'astro:content';
 import WikiLayout from '../../layouts/WikiLayout.astro';
 import KptCards from '../../components/KptCards.astro';
+import { renderKpt } from '../../lib/kpt';
 import {
   shortDate,
   koWeekdayFull,
@@ -36,7 +37,7 @@ interface Props {
 
 const { entry, newer, older } = Astro.props;
 const { data } = entry;
-const { Content } = await render(entry);
+const kpt = renderKpt(entry.body);
 
 const isToday = isoDate(data.date) === isoDate(new Date());
 const photos = [...(data.cover ? [data.cover] : []), ...data.photos];
@@ -70,8 +71,8 @@ const photos = [...(data.cover ? [data.cover] : []), ...data.photos];
     }
   </header>
 
-  {/* KPT 3단 */}
-  <KptCards keep={data.keep} problem={data.problem} try={data.try} />
+  {/* KPT 3단 (본문 섹션에서 렌더) */}
+  <KptCards keep={kpt.keep} problem={kpt.problem} try={kpt.try} />
 
   {/* 첨부 사진 */}
   {
@@ -89,10 +90,8 @@ const photos = [...(data.cover ? [data.cover] : []), ...data.photos];
     )
   }
 
-  {/* 본문 노트 (마크다운) */}
-  <section class="notes">
-    <Content />
-  </section>
+  {/* 본문 노트 (KPT 섹션 바깥 내용) */}
+  {kpt.rest && <section class="notes" set:html={kpt.rest} />}
 
   {/* 이전/다음 이동 */}
   <nav class="pager">

@@ -1,16 +1,17 @@
 ---
+// keep/problem/try 는 이미 렌더된 HTML 문자열(마크다운 → HTML) 또는 null
 interface Props {
-  keep?: string;
-  problem?: string;
-  try?: string;
+  keep?: string | null;
+  problem?: string | null;
+  try?: string | null;
 }
 
-const { keep, problem, try: tryText } = Astro.props;
+const { keep, problem, try: tryHtml } = Astro.props;
 
 const cards = [
-  { label: 'KEEP', tone: 'keep', text: keep },
-  { label: 'PROBLEM', tone: 'problem', text: problem },
-  { label: 'TRY', tone: 'try', text: tryText },
+  { label: 'KEEP', tone: 'keep', html: keep },
+  { label: 'PROBLEM', tone: 'problem', html: problem },
+  { label: 'TRY', tone: 'try', html: tryHtml },
 ] as const;
 ---
 
@@ -24,9 +25,11 @@ const cards = [
             {c.label}
           </span>
         </div>
-        <p class="kpt-text" data-empty={!c.text}>
-          {c.text ?? '작성되지 않음'}
-        </p>
+        {c.html ? (
+          <div class="kpt-body" set:html={c.html} />
+        ) : (
+          <p class="kpt-empty">작성되지 않음</p>
+        )}
       </div>
     ))
   }
@@ -63,15 +66,53 @@ const cards = [
     font-weight: 800;
     letter-spacing: 0.06em;
   }
-  .kpt-text {
-    margin: 0;
+
+  .kpt-body {
     font-size: 14px;
     line-height: 1.65;
     color: var(--text);
-    white-space: pre-line;
   }
-  .kpt-text[data-empty='true'] {
+  .kpt-empty {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.65;
     color: var(--text-3);
+  }
+
+  /* 카드 내부 마크다운 요소 */
+  .kpt-body :global(p) {
+    margin: 0 0 8px;
+  }
+  .kpt-body :global(p:last-child) {
+    margin-bottom: 0;
+  }
+  .kpt-body :global(ul),
+  .kpt-body :global(ol) {
+    margin: 0;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .kpt-body :global(li) {
+    padding-left: 2px;
+  }
+  .kpt-body :global(li::marker) {
+    color: var(--text-3);
+  }
+  .kpt-body :global(a) {
+    color: var(--accent-strong);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .kpt-body :global(code) {
+    background: var(--surface-2);
+    padding: 2px 6px;
+    border-radius: 5px;
+    font-size: 0.9em;
+  }
+  .kpt-body :global(strong) {
+    font-weight: 700;
   }
 
   @media (max-width: 720px) {

@@ -16,12 +16,9 @@ const retros = defineCollection({
     cover: z.string().optional(),
     // 선택: 첨부 사진 목록
     photos: z.array(z.string()).default([]),
-    // KPT 본문 (마크다운 텍스트 가능)
-    keep: z.string().optional(),
-    problem: z.string().optional(),
-    try: z.string().optional(),
     // 선택: 초안이면 true (빌드에서 제외)
     draft: z.boolean().default(false),
+    // KPT 내용은 프론트매터가 아니라 본문의 "# Keep / # Problem / # Try" 섹션에 작성합니다.
   }),
 });
 

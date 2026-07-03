@@ -9,6 +9,7 @@ import {
   computeStreak,
   retroPath,
 } from '../lib/format';
+import { renderKpt, kptPresent, plainExcerpt } from '../lib/kpt';
 
 const all = (await getCollection('retros'))
   .filter((r) => !r.data.draft)
@@ -31,11 +32,12 @@ const streak = computeStreak(all.map((r) => r.data.date));
 const todayIso = isoDate(new Date());
 const latestIsToday = latest ? isoDate(latest.data.date) === todayIso : false;
 
-// 최근 회고 요약 & KPT 유무 점
-const dots = (r: (typeof all)[number]) =>
-  (['keep', 'problem', 'try'] as const).filter((k) => r.data[k]);
-const summary = (r: (typeof all)[number]) =>
-  r.data.title ?? r.data.keep ?? r.data.problem ?? r.data.try ?? '';
+// 오늘(최신) 회고 KPT를 본문 섹션에서 렌더
+const latestKpt = latest ? renderKpt(latest.body) : null;
+
+// 최근 회고 요약 & KPT 유무 점 (본문 기준)
+const dots = (r: (typeof all)[number]) => kptPresent(r.body);
+const summary = (r: (typeof all)[number]) => r.data.title ?? plainExcerpt(r.body);
 ---
 
 <WikiLayout title="회고 위키">
@@ -74,9 +76,9 @@ const summary = (r: (typeof all)[number]) =>
             </span>
           </a>
           <KptCards
-            keep={latest.data.keep}
-            problem={latest.data.problem}
-            try={latest.data.try}
+            keep={latestKpt?.keep}
+            problem={latestKpt?.problem}
+            try={latestKpt?.try}
           />
         </article>
 
