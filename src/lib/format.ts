@@ -73,3 +73,9 @@ export function homePath(): string {
 export function retroPath(id: string): string {
   return withBase(`retros/${id}/`);
 }
+
+/** public/ 자산 경로에 BASE_URL을 붙임 (사진 등). 외부 URL은 그대로 둠 */
+export function asset(path: string): string {
+  if (/^(https?:)?\/\//.test(path) || path.startsWith('data:')) return path;
+  return withBase(path);
+}

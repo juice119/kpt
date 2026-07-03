@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#e3f1ea"/>
+  <rect x="40" y="40" width="720" height="520" rx="16" fill="#ffffff" stroke="#3aa079" stroke-width="3"/>
+  <text x="400" y="300" font-family="Pretendard, sans-serif" font-size="40" font-weight="700" fill="#2c8563" text-anchor="middle">배포 파이프라인 스케치</text>
+  <text x="400" y="360" font-family="Pretendard, sans-serif" font-size="22" fill="#586b61" text-anchor="middle">whiteboard photo (sample)</text>
+</svg>

@@ -1,0 +1,315 @@
+---
+import { getCollection, render } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+import WikiLayout from '../../layouts/WikiLayout.astro';
+import KptCards from '../../components/KptCards.astro';
+import {
+  shortDate,
+  koWeekdayFull,
+  isoDate,
+  retroPath,
+  homePath,
+  asset,
+} from '../../lib/format';
+
+export async function getStaticPaths() {
+  const all = (await getCollection('retros'))
+    .filter((r) => !r.data.draft)
+    .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+  return all.map((entry, i) => ({
+    params: { slug: entry.id },
+    props: {
+      entry,
+      newer: all[i - 1] ?? null, // 더 최신 회고
+      older: all[i + 1] ?? null, // 더 오래된 회고
+    },
+  }));
+}
+
+type Retro = CollectionEntry<'retros'>;
+interface Props {
+  entry: Retro;
+  newer: Retro | null;
+  older: Retro | null;
+}
+
+const { entry, newer, older } = Astro.props;
+const { data } = entry;
+const { Content } = await render(entry);
+
+const isToday = isoDate(data.date) === isoDate(new Date());
+const photos = [...(data.cover ? [data.cover] : []), ...data.photos];
+---
+
+<WikiLayout title={`${shortDate(data.date)} ${data.title ?? '회고'} · 회고 위키`}>
+  {/* 브레드크럼 */}
+  <nav class="crumb">
+    <a href={homePath()}>회고 위키</a>
+    <span class="sep">/</span>
+    <span class="cur">{shortDate(data.date)}</span>
+  </nav>
+
+  {/* 제목 */}
+  <header class="detail-head">
+    <div class="date-row">
+      <span class="date-big">{shortDate(data.date)}</span>
+      <span class="date-meta">
+        {koWeekdayFull(data.date)}{isToday ? ' · 오늘' : ''}
+      </span>
+    </div>
+    {data.title && <h1 class="detail-title">{data.title}</h1>}
+    {
+      data.tags.length > 0 && (
+        <div class="tags">
+          {data.tags.map((t) => (
+            <span class="tag">{t}</span>
+          ))}
+        </div>
+      )
+    }
+  </header>
+
+  {/* KPT 3단 */}
+  <KptCards keep={data.keep} problem={data.problem} try={data.try} />
+
+  {/* 첨부 사진 */}
+  {
+    photos.length > 0 && (
+      <section class="photos">
+        <div class="section-label">사진</div>
+        <div class="photo-grid">
+          {photos.map((p, i) => (
+            <a class="photo" href={asset(p)} target="_blank" rel="noopener">
+              <img src={asset(p)} alt={`${data.title ?? shortDate(data.date)} 사진 ${i + 1}`} loading="lazy" />
+            </a>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  {/* 본문 노트 (마크다운) */}
+  <section class="notes">
+    <Content />
+  </section>
+
+  {/* 이전/다음 이동 */}
+  <nav class="pager">
+    {
+      older ? (
+        <a class="pager-link" href={retroPath(older.id)}>
+          <span class="pager-dir">← 이전 회고</span>
+          <span class="pager-title">
+            {shortDate(older.data.date)} · {older.data.title ?? '회고'}
+          </span>
+        </a>
+      ) : (
+        <span />
+      )
+    }
+    {
+      newer ? (
+        <a class="pager-link pager-right" href={retroPath(newer.id)}>
+          <span class="pager-dir">다음 회고 →</span>
+          <span class="pager-title">
+            {shortDate(newer.data.date)} · {newer.data.title ?? '회고'}
+          </span>
+        </a>
+      ) : (
+        <span />
+      )
+    }
+  </nav>
+</WikiLayout>
+
+<style>
+  .crumb {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-2);
+    margin-bottom: 20px;
+  }
+  .crumb a:hover {
+    color: var(--accent-strong);
+  }
+  .crumb .sep {
+    color: var(--text-3);
+  }
+  .crumb .cur {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .detail-head {
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .date-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .date-big {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .date-meta {
+    font-size: 13px;
+    color: var(--text-2);
+  }
+  .detail-title {
+    margin: 10px 0 0;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 14px;
+  }
+  .tag {
+    font-size: 11.5px;
+    color: var(--text-2);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--text-3);
+    margin-bottom: 10px;
+  }
+  .photos {
+    margin-top: 24px;
+  }
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .photo {
+    display: block;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface-2);
+    aspect-ratio: 4 / 3;
+  }
+  .photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.2s ease;
+  }
+  .photo:hover img {
+    transform: scale(1.03);
+  }
+
+  .notes {
+    margin-top: 24px;
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--text);
+  }
+  .notes :global(:where(p, ul, ol, blockquote, h2, h3, pre)) {
+    margin: 0 0 14px;
+  }
+  .notes :global(h2) {
+    font-size: 17px;
+    font-weight: 700;
+    margin-top: 22px;
+  }
+  .notes :global(h3) {
+    font-size: 15px;
+    font-weight: 700;
+    margin-top: 18px;
+  }
+  .notes :global(a) {
+    color: var(--accent-strong);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .notes :global(img) {
+    max-width: 100%;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .notes :global(code) {
+    background: var(--surface-2);
+    padding: 2px 6px;
+    border-radius: 5px;
+    font-size: 0.9em;
+  }
+  .notes :global(pre) {
+    background: var(--surface-2);
+    padding: 14px 16px;
+    border-radius: 10px;
+    overflow: auto;
+  }
+  .notes :global(pre code) {
+    background: transparent;
+    padding: 0;
+  }
+  .notes :global(blockquote) {
+    border-left: 3px solid var(--border-strong);
+    padding-left: 14px;
+    color: var(--text-2);
+  }
+
+  .pager {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 32px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  .pager-link {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    max-width: 48%;
+  }
+  .pager-link:hover {
+    background: var(--surface-2);
+  }
+  .pager-right {
+    text-align: right;
+    align-items: flex-end;
+  }
+  .pager-dir {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--accent-strong);
+  }
+  .pager-title {
+    font-size: 13px;
+    color: var(--text-2);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+
+  @media (max-width: 720px) {
+    .photo-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+</style>
