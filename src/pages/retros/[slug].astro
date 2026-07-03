@@ -3,7 +3,7 @@ import { getCollection } from 'astro:content';
 import type { CollectionEntry } from 'astro:content';
 import WikiLayout from '../../layouts/WikiLayout.astro';
 import KptCards from '../../components/KptCards.astro';
-import { renderKpt, extractImages } from '../../lib/kpt';
+import { KptDocument } from '../../lib/kpt';
 import {
   shortDate,
   koWeekdayFull,
@@ -37,10 +37,11 @@ interface Props {
 
 const { entry, newer, older } = Astro.props;
 const { data } = entry;
-const kpt = renderKpt(entry.body);
+const doc = KptDocument.fromMdFile(entry.body || '');
+const kpt = doc.toHtml();
 
 const isToday = isoDate(data.date) === isoDate(new Date());
-const images = extractImages(entry.body); // "# 참고 이미지" 섹션에서
+const images = doc.images(); // "# 참고 이미지" 섹션에서
 ---
 
 <WikiLayout title={`${shortDate(data.date)} ${data.title ?? '회고'} · 회고 위키`}>

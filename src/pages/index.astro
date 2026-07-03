@@ -1,19 +1,19 @@
 ---
-import { getCollection } from 'astro:content';
-import WikiLayout from '../layouts/WikiLayout.astro';
-import KptCards from '../components/KptCards.astro';
+import { getCollection } from "astro:content";
+import WikiLayout from "../layouts/WikiLayout.astro";
+import KptCards from "../components/KptCards.astro";
 import {
-  shortDate,
-  koWeekdayFull,
-  isoDate,
-  computeStreak,
-  retroPath,
-} from '../lib/format';
-import { renderKpt, kptPresent, plainExcerpt } from '../lib/kpt';
+	shortDate,
+	koWeekdayFull,
+	isoDate,
+	computeStreak,
+	retroPath,
+} from "../lib/format";
+import { KptDocument } from "../lib/kpt";
 
-const all = (await getCollection('retros'))
-  .filter((r) => !r.data.draft)
-  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+const all = (await getCollection("retros"))
+	.filter((r) => !r.data.draft)
+	.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
 
 const latest = all[0];
 const recent = all.slice(1, 9);
@@ -21,23 +21,24 @@ const recent = all.slice(1, 9);
 // ── 통계 (실제 데이터 기반) ──
 const total = all.length;
 const thisMonth = latest
-  ? all.filter(
-      (r) =>
-        r.data.date.getUTCFullYear() === latest.data.date.getUTCFullYear() &&
-        r.data.date.getUTCMonth() === latest.data.date.getUTCMonth(),
-    ).length
-  : 0;
+	? all.filter(
+			(r) =>
+				r.data.date.getUTCFullYear() === latest.data.date.getUTCFullYear() &&
+				r.data.date.getUTCMonth() === latest.data.date.getUTCMonth(),
+		).length
+	: 0;
 const streak = computeStreak(all.map((r) => r.data.date));
 
 const todayIso = isoDate(new Date());
 const latestIsToday = latest ? isoDate(latest.data.date) === todayIso : false;
 
 // 오늘(최신) 회고 KPT를 본문 섹션에서 렌더
-const latestKpt = latest ? renderKpt(latest.body) : null;
+const latestKpt = latest && latest.body && latest.body.length > 0 ? KptDocument.fromMdFile(latest.body).toHtml() : null;
 
 // 최근 회고 요약 & KPT 유무 점 (본문 기준)
-const dots = (r: (typeof all)[number]) => kptPresent(r.body);
-const summary = (r: (typeof all)[number]) => r.data.title ?? plainExcerpt(r.body);
+const dots = (r: (typeof all)[number]) => KptDocument.fromMdFile(r.body || '').present();
+const summary = (r: (typeof all)[number]) =>
+	r.data.title ?? KptDocument.fromMdFile(r.body || '').excerpt();
 ---
 
 <WikiLayout title="회고 위키">
