@@ -8,6 +8,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
+    "retro": "node scripts/retro.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },
