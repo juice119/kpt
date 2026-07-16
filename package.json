@@ -1,24 +1,25 @@
 {
-  "name": "kpt-wiki",
-  "type": "module",
-  "version": "0.1.0",
-  "private": true,
-  "packageManager": "pnpm@11.10.0",
-  "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview",
-    "astro": "astro",
-    "retro": "node scripts/retro.mjs",
-    "test": "vitest run",
-    "test:watch": "vitest"
-  },
-  "dependencies": {
-    "astro": "^7.0.5",
-    "marked": "^18.0.5"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "2.5.2",
-    "vitest": "^4.1.9"
-  }
+	"name": "kpt-wiki",
+	"type": "module",
+	"version": "0.1.0",
+	"private": true,
+	"packageManager": "pnpm@11.10.0",
+	"scripts": {
+		"dev": "astro dev",
+		"build": "astro build",
+		"preview": "astro preview",
+		"astro": "astro",
+		"retro": "node scripts/retro.mjs",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"check": "pnpm exec biome check . --fix"
+	},
+	"dependencies": {
+		"astro": "^7.0.5",
+		"marked": "^18.0.5"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.2",
+		"vitest": "^4.1.9"
+	}
 }

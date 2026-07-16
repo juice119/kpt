@@ -6,7 +6,13 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"includes": ["**", "!!**/dist", "!**/node_modules", "!**/dist", "!**/*.astro"]
+		"includes": [
+			"**",
+			"!!**/dist",
+			"!**/node_modules",
+			"!**/dist",
+			"!**/*.astro"
+		]
 	},
 	"formatter": {
 		"enabled": true,
@@ -16,7 +22,8 @@
 		"enabled": true,
 		"rules": {
 			"preset": "recommended"
-		}
+		},
+		"includes": ["src/**/*.ts"]
 	},
 	"javascript": {
 		"formatter": {

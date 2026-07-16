@@ -1,8 +1,5 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash(npm install *)",
-      "Bash(npx vitest *)"
-    ]
-  }
+	"permissions": {
+		"allow": ["Bash(npm install *)", "Bash(npx vitest *)"]
+	}
 }
