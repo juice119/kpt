@@ -16,7 +16,11 @@ function toDateStr(d) {
 	return d.toISOString().slice(0, 10);
 }
 
-const date = process.argv[2] ?? toDateStr(new Date());
+const arg = process.argv[2];
+const isOffset = arg !== undefined && /^-?\d+$/.test(arg);
+const date = isOffset
+	? toDateStr(new Date(Date.now() + Number(arg) * 86400000))
+	: (arg ?? toDateStr(new Date()));
 const outFile = path.join(retrosDir, `${date}.md`);
 
 if (existsSync(outFile)) {
