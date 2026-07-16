@@ -23,7 +23,7 @@
 		"rules": {
 			"preset": "recommended"
 		},
-		"includes": ["src/**/*.ts"]
+		"includes": ["src/**/*.ts", "script/**"]
 	},
 	"javascript": {
 		"formatter": {
