@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
@@ -26,6 +26,23 @@ const outFile = path.join(retrosDir, `${date}.md`);
 if (existsSync(outFile)) {
 	console.error(`이미 존재함: ${outFile}`);
 	process.exit(1);
+}
+
+function findLatestRetroDate(beforeDate) {
+	const dates = readdirSync(retrosDir)
+		.map((f) => f.match(/^(\d{4}-\d{2}-\d{2})\.md$/)?.[1])
+		.filter((d) => d && d < beforeDate)
+		.sort();
+	return dates.at(-1) ?? null;
+}
+
+function extractActionPoints(md) {
+	const m = md.match(/## 다음 액션\n([\s\S]*?)(?:\n#|$)/);
+	if (!m) return [];
+	return m[1]
+		.split("\n")
+		.map((l) => l.trim())
+		.filter((l) => l.startsWith("- ["));
 }
 
 function nextDay(dateStr) {
@@ -211,6 +228,13 @@ async function main() {
 	const example1 = readFileSync(path.join(retrosDir, "2026-07-11.md"), "utf8");
 	const example2 = readFileSync(path.join(retrosDir, "2026-07-13.md"), "utf8");
 
+	const prevDate = findLatestRetroDate(date);
+	const prevActions = prevDate
+		? extractActionPoints(
+				readFileSync(path.join(retrosDir, `${prevDate}.md`), "utf8"),
+			)
+		: [];
+
 	const qaText = qa.map(({ q, a }) => `Q: ${q}\nA: ${a}`).join("\n\n");
 
 	const mdPrompt = `아래 형식과 정확히 동일한 구조로 ${date} 날짜의 하루 회고(KPT) 마크다운을 작성하라.
@@ -224,9 +248,12 @@ ${example2}
 규칙:
 - frontmatter는 date(${date}), title(하루 내용을 요약한 짧은 제목), tags(관련 키워드 배열) 세 개만 사용.
 - frontmatter 다음에 그날 한 일을 자유 서술로 몇 줄 요약.
-- "## 다음 액션" 섹션에 체크리스트(- [ ] ...) 2~4개.
+- "## 다음 액션" 섹션에 체크리스트(- [ ] ...) 2~4개. 아래 "이전 회고(${prevDate ?? "없음"})의 다음 액션"을 참고해, 오늘 활동/답변으로 완료된 항목은 빼고 미완료 항목은 이어서 넣어라. 완료된 게 많아 자리가 남으면 오늘 활동에서 새 액션을 추가해라.
 - "# Keep", "# Problem", "# Try" 섹션(H1, 정확히 이 텍스트)을 순서대로 포함, 각각 불릿 1개 이상.
 - 마크다운 본문만 출력하고 코드펜스나 다른 설명은 붙이지 마라.
+
+이전 회고(${prevDate ?? "없음"})의 다음 액션:
+${prevActions.length ? prevActions.join("\n") : "(없음)"}
 
 오늘 활동 요약:
 ${summary}
