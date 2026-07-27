@@ -1,0 +1,8 @@
+{
+  "antigravity.commitMessage.language": "ko",
+  "gemini.commitMessage.language": "ko",
+  "antigravity.commitMessagePrompt": "Conventional Commits 규격을 따라 반드시 한국어(Korean)로 작성해줘. 제목은 50자 이내로 마침표 없이 작성해줘.",
+  "gemini.commitMessagePrompt": "Conventional Commits 규격을 따라 반드시 한국어(Korean)로 작성해줘. 제목은 50자 이내로 마침표 없이 작성해줘.",
+  "github.copilot.chat.commitMessagePrompt": "Conventional Commits 규격을 따라 반드시 한국어(Korean)로 작성해줘. 제목은 50자 이내로 마침표 없이 작성해줘.",
+  "gitlens.ai.experimental.customPrompt": "Conventional Commits 규격을 따라 반드시 한국어(Korean)로 작성해줘. 제목은 50자 이내로 마침표 없이 작성해줘."
+}
