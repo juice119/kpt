@@ -9,6 +9,7 @@ npm-debug.log*
 # environment
 .env
 .env.production
+env/env.yml
 # macOS
 .DS_Store
 # Claude Code personal settings (launch.json은 공유)

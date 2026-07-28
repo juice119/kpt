@@ -12,6 +12,18 @@ const retrosDir = path.join(repoRoot, "src/content/retros");
 const rl = createInterface({ input: process.stdin, output: process.stdout });
 const ask = (q) => rl.question(q);
 
+function loadEnvYml() {
+	const file = path.join(repoRoot, "env/env.yml");
+	if (!existsSync(file)) return {};
+	const env = {};
+	for (const line of readFileSync(file, "utf8").split("\n")) {
+		const m = line.match(/^\s*([A-Za-z0-9_]+)\s*[:=]\s*(.+?)\s*$/);
+		if (m) env[m[1]] = m[2].replace(/^["']|["']$/g, "");
+	}
+	return env;
+}
+const envYml = loadEnvYml();
+
 function toDateStr(d) {
 	return d.toISOString().slice(0, 10);
 }
@@ -77,12 +89,6 @@ function markActionsComplete(prevDate, completedActions) {
 	console.log(`이전 회고(${prevDate}) 완료 항목 체크: ${completedActions.length}개`);
 }
 
-function nextDay(dateStr) {
-	const d = new Date(`${dateStr}T00:00:00Z`);
-	d.setUTCDate(d.getUTCDate() + 1);
-	return toDateStr(d);
-}
-
 function runGh(args) {
 	const res = spawnSync("gh", args, { encoding: "utf8" });
 	if (res.status !== 0) {
@@ -135,70 +141,71 @@ function fetchPrs(date) {
 	);
 }
 
-async function askEnvOrPrompt(envName, label) {
-	let value = process.env[envName];
+async function askEnvOrPrompt(envName, label, ymlKey) {
+	let value = process.env[envName] || (ymlKey && envYml[ymlKey]);
 	if (!value) {
 		console.log(
-			`${envName} 환경변수 없음. (다음부터는 export ${envName}=... 해두면 이 프롬프트 건너뜀)`,
+			`${envName} 환경변수 없음. (다음부터는 env.yml에 ${ymlKey ?? envName} 적어두면 이 프롬프트 건너뜀)`,
 		);
 		value = (await ask(`${label}: `)).trim();
 	}
 	return value;
 }
 
-// Toggl 2.0 (Focus) API: https://engineering.toggl.com/docs/focus/
-async function fetchToggl(date) {
+// TMetric API v3: https://app.tmetric.com/api-docs/
+async function fetchTmetric(date) {
 	const token = await askEnvOrPrompt(
-		"TOGGL_API_TOKEN",
-		"Toggl API 키 입력 (focus.toggl.com/settings 에서 발급, toggl_sk_...)",
+		"TMETRIC_API_TOKEN",
+		"TMetric API 토큰 입력 (app.tmetric.com/#/profile 의 'Get new API token'에서 발급)",
+		"TMetricApiToken",
 	);
 	if (!token) {
-		console.warn("[toggl 경고] 토큰 미입력, Toggl 데이터 건너뜀");
-		return [];
-	}
-	const orgId = await askEnvOrPrompt(
-		"TOGGL_ORG_ID",
-		"Toggl organization_id 입력 (focus.toggl.com 접속 시 URL에서 확인)",
-	);
-	const workspaceId = await askEnvOrPrompt(
-		"TOGGL_WORKSPACE_ID",
-		"Toggl workspace_id 입력 (focus.toggl.com 접속 시 URL에서 확인)",
-	);
-	if (!orgId || !workspaceId) {
-		console.warn(
-			"[toggl 경고] organization_id/workspace_id 미입력, Toggl 데이터 건너뜀",
-		);
+		console.warn("[tmetric 경고] 토큰 미입력, TMetric 데이터 건너뜀");
 		return [];
 	}
 
-	const url = `https://focus.toggl.com/api/organizations/${orgId}/workspaces/${workspaceId}/time-entries?date_from=${date}T00:00:00Z&date_to=${nextDay(date)}T00:00:00Z`;
+	const headers = { Authorization: `Bearer ${token}` };
 	try {
-		const res = await fetch(url, {
-			headers: { Authorization: `Bearer ${token}` },
+		const userRes = await fetch("https://app.tmetric.com/api/v3/user", {
+			headers,
 		});
-		if (!res.ok) {
+		if (!userRes.ok) {
 			console.warn(
-				`[toggl 경고] API 요청 실패: ${res.status} ${res.statusText}`,
+				`[tmetric 경고] 사용자 정보 조회 실패: ${userRes.status} ${userRes.statusText}`,
 			);
 			return [];
 		}
-		const body = await res.json();
-		const entries = body.data ?? body;
+		const { activeAccountId } = await userRes.json();
 
-		return entries.map((e) => {
-			const minutes = Math.max(0, Math.round((e.duration ?? 0) / 60));
-			const title =
-				e.description || e.task?.name || e.project?.name || "(제목 없음)";
-			return `- ${title} (${minutes}분)`;
-		});
+		const url = `https://app.tmetric.com/api/v3/accounts/${activeAccountId}/timeentries?startDate=${date}&endDate=${date}`;
+		const res = await fetch(url, { headers });
+		if (!res.ok) {
+			console.warn(
+				`[tmetric 경고] API 요청 실패: ${res.status} ${res.statusText}`,
+			);
+			return [];
+		}
+		const entries = await res.json();
+
+		return entries
+			.filter((e) => e.endTime)
+			.map((e) => {
+				const minutes = Math.max(
+					0,
+					Math.round((new Date(e.endTime) - new Date(e.startTime)) / 60000),
+				);
+				const title =
+					e.note || e.task?.name || e.project?.name || "(제목 없음)";
+				return `- ${title} (${minutes}분)`;
+			});
 	} catch (err) {
-		console.warn(`[toggl 경고] ${err.message}`);
+		console.warn(`[tmetric 경고] ${err.message}`);
 		return [];
 	}
 }
 
 function callClaude(prompt) {
-	const res = spawnSync("claude", ["-p", prompt], {
+	const res = spawnSync("claude", ["-p", prompt, "--tools", ""], {
 		encoding: "utf8",
 		maxBuffer: 10 * 1024 * 1024,
 	});
@@ -219,7 +226,7 @@ async function main() {
 	console.log(`오늘(${date}) 활동 수집 중...`);
 	const commits = fetchCommits(date);
 	const prs = fetchPrs(date);
-	const toggl = await fetchToggl(date);
+	const tmetric = await fetchTmetric(date);
 
 	const summary = [
 		"## GitHub 커밋",
@@ -228,8 +235,8 @@ async function main() {
 		"## GitHub PR",
 		prs.length ? prs.join("\n") : "(없음)",
 		"",
-		"## Toggl 시간 기록",
-		toggl.length ? toggl.join("\n") : "(없음)",
+		"## TMetric 시간 기록",
+		tmetric.length ? tmetric.join("\n") : "(없음)",
 	].join("\n");
 
 	console.log("\n--- 오늘 활동 요약 ---");
