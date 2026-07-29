@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { cancel, isCancel, multiselect } from "@clack/prompts";
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -9,7 +10,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
 const retrosDir = path.join(repoRoot, "src/content/retros");
 
-const rl = createInterface({ input: process.stdin, output: process.stdout });
+let rl;
 const ask = (q) => rl.question(q);
 
 function loadEnvYml() {
@@ -25,7 +26,7 @@ function loadEnvYml() {
 const envYml = loadEnvYml();
 
 function toDateStr(d) {
-	return d.toISOString().slice(0, 10);
+	return d.toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
 }
 
 const arg = process.argv[2];
@@ -36,7 +37,7 @@ const date = isOffset
 const outFile = path.join(retrosDir, `${date}.md`);
 
 if (existsSync(outFile)) {
-	console.error(`이미 존재함: ${outFile}`);
+	console.error(`🚫 이미 존재함: ${outFile}`);
 	process.exit(1);
 }
 
@@ -54,27 +55,24 @@ function extractActionPoints(md) {
 	return m[1]
 		.split("\n")
 		.map((l) => l.trim())
-		.filter((l) => l.startsWith("- ["));
+		.filter((l) => l.startsWith("- [ ]"));
 }
 
-function determineCompletedActions(prevActions, summary, qaText) {
+async function reviewActions(prevActions) {
 	if (prevActions.length === 0) return [];
-	const prompt = `아래는 이전 회고의 "다음 액션" 목록이다. 오늘 활동 요약과 질문/답변을 참고해 오늘 완료된 항목만 골라, 목록에 있는 원문 그대로 한 줄씩 출력하라. 완료된 항목이 없으면 "없음"만 출력하고 다른 설명은 붙이지 마라.
-
-다음 액션 목록:
-${prevActions.join("\n")}
-
-오늘 활동 요약:
-${summary}
-
-질문/답변:
-${qaText}`;
-	const raw = callClaude(prompt);
-	const lines = raw
-		.split("\n")
-		.map((l) => l.trim())
-		.filter(Boolean);
-	return prevActions.filter((a) => lines.includes(a));
+	const selected = await multiselect({
+		message: "✅ 이전 회고 액션 포인트 리뷰 — 완료한 항목 스페이스로 체크",
+		options: prevActions.map((action) => ({
+			value: action,
+			label: action.replace(/^- \[[ x]\]\s*/, ""),
+		})),
+		required: false,
+	});
+	if (isCancel(selected)) {
+		cancel("취소됨");
+		process.exit(1);
+	}
+	return selected;
 }
 
 function markActionsComplete(prevDate, completedActions) {
@@ -86,21 +84,21 @@ function markActionsComplete(prevDate, completedActions) {
 		content = content.replace(action, checked);
 	}
 	writeFileSync(prevFile, content);
-	console.log(`이전 회고(${prevDate}) 완료 항목 체크: ${completedActions.length}개`);
+	console.log(`   🎉 이전 회고(${prevDate}) 완료 항목 체크: ${completedActions.length}개`);
 }
 
 function runGh(args) {
 	const res = spawnSync("gh", args, { encoding: "utf8" });
 	if (res.status !== 0) {
 		console.warn(
-			`[gh 경고] ${args.join(" ")} 실패: ${res.stderr?.trim() || res.error?.message}`,
+			`⚠️  [gh] ${args.join(" ")} 실패: ${res.stderr?.trim() || res.error?.message}`,
 		);
 		return [];
 	}
 	try {
 		return JSON.parse(res.stdout || "[]");
 	} catch {
-		console.warn(`[gh 경고] JSON 파싱 실패: ${args.join(" ")}`);
+		console.warn(`⚠️  [gh] JSON 파싱 실패: ${args.join(" ")}`);
 		return [];
 	}
 }
@@ -145,9 +143,9 @@ async function askEnvOrPrompt(envName, label, ymlKey) {
 	let value = process.env[envName] || (ymlKey && envYml[ymlKey]);
 	if (!value) {
 		console.log(
-			`${envName} 환경변수 없음. (다음부터는 env.yml에 ${ymlKey ?? envName} 적어두면 이 프롬프트 건너뜀)`,
+			`🔑 ${envName} 환경변수 없음. (다음부터는 env.yml에 ${ymlKey ?? envName} 적어두면 이 프롬프트 건너뜀)`,
 		);
-		value = (await ask(`${label}: `)).trim();
+		value = (await ask(`   > ${label}: `)).trim();
 	}
 	return value;
 }
@@ -160,7 +158,7 @@ async function fetchTmetric(date) {
 		"TMetricApiToken",
 	);
 	if (!token) {
-		console.warn("[tmetric 경고] 토큰 미입력, TMetric 데이터 건너뜀");
+		console.warn("⚠️  [tmetric] 토큰 미입력, TMetric 데이터 건너뜀");
 		return [];
 	}
 
@@ -171,7 +169,7 @@ async function fetchTmetric(date) {
 		});
 		if (!userRes.ok) {
 			console.warn(
-				`[tmetric 경고] 사용자 정보 조회 실패: ${userRes.status} ${userRes.statusText}`,
+				`⚠️  [tmetric] 사용자 정보 조회 실패: ${userRes.status} ${userRes.statusText}`,
 			);
 			return [];
 		}
@@ -181,7 +179,7 @@ async function fetchTmetric(date) {
 		const res = await fetch(url, { headers });
 		if (!res.ok) {
 			console.warn(
-				`[tmetric 경고] API 요청 실패: ${res.status} ${res.statusText}`,
+				`⚠️  [tmetric] API 요청 실패: ${res.status} ${res.statusText}`,
 			);
 			return [];
 		}
@@ -199,16 +197,23 @@ async function fetchTmetric(date) {
 				return `- ${title} (${minutes}분)`;
 			});
 	} catch (err) {
-		console.warn(`[tmetric 경고] ${err.message}`);
+		console.warn(`⚠️  [tmetric] ${err.message}`);
 		return [];
 	}
 }
 
+const CLAUDE_SYSTEM_PROMPT =
+	"너는 텍스트 생성기다. 입력으로 주어진 지시에 따라 결과 텍스트만 그대로 출력한다. tool 호출, bash 명령어, 파일 접근을 시도하거나 언급하지 않는다.";
+
 function callClaude(prompt) {
-	const res = spawnSync("claude", ["-p", prompt, "--tools", ""], {
-		encoding: "utf8",
-		maxBuffer: 10 * 1024 * 1024,
-	});
+	const res = spawnSync(
+		"claude",
+		["-p", prompt, "--tools", "", "--system-prompt", CLAUDE_SYSTEM_PROMPT],
+		{
+			encoding: "utf8",
+			maxBuffer: 10 * 1024 * 1024,
+		},
+	);
 	if (res.status !== 0) {
 		throw new Error(
 			`claude 호출 실패: ${res.stderr?.trim() || res.error?.message}`,
@@ -223,7 +228,24 @@ function stripCodeFence(text) {
 }
 
 async function main() {
-	console.log(`오늘(${date}) 활동 수집 중...`);
+	console.log(`\n📅 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+	console.log(`   ✍️  ${date} 회고 작성 시작`);
+	console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+
+	const prevDate = findLatestRetroDate(date);
+	const prevActions = prevDate
+		? extractActionPoints(
+				readFileSync(path.join(retrosDir, `${prevDate}.md`), "utf8"),
+			)
+		: [];
+
+	const completedActions = await reviewActions(prevActions);
+	markActionsComplete(prevDate, completedActions);
+	const remainingActions = prevActions.filter((a) => !completedActions.includes(a));
+
+	rl = createInterface({ input: process.stdin, output: process.stdout });
+
+	console.log(`\n🔍 오늘(${date}) 활동 수집 중...`);
 	const commits = fetchCommits(date);
 	const prs = fetchPrs(date);
 	const tmetric = await fetchTmetric(date);
@@ -239,13 +261,13 @@ async function main() {
 		tmetric.length ? tmetric.join("\n") : "(없음)",
 	].join("\n");
 
-	console.log("\n--- 오늘 활동 요약 ---");
+	console.log("\n📊 ━━━ 오늘 활동 요약 ━━━");
 	console.log(summary);
-	console.log("---\n");
+	console.log("━━━━━━━━━━━━━━━━━━━━━\n");
 
 	const questionsPrompt = `아래는 개발자의 오늘(${date}) 활동 요약이다. 이 사람이 하루 회고(KPT)를 쓰는 데 도움이 될 짧은 질문을 최대 3개, 한글로 만들어라. 각 질문은 번호를 붙여 한 줄씩만 출력하고 다른 설명은 붙이지 마라.\n\n${summary}`;
 
-	console.log("예상 질문 생성 중 (claude 호출)...");
+	console.log("🤖 예상 질문 생성 중 (claude 호출)...");
 	const questionsRaw = callClaude(questionsPrompt);
 	const questions = questionsRaw
 		.split("\n")
@@ -257,9 +279,10 @@ async function main() {
 		throw new Error("claude가 질문을 생성하지 못함");
 	}
 
+	console.log("\n💬 ━━━ 질문 ━━━");
 	const qa = [];
 	for (const q of questions) {
-		const a = await ask(`\n${q}\n> `);
+		const a = await ask(`\n❓ ${q}\n> `);
 		qa.push({ q, a: a.trim() });
 	}
 	rl.close();
@@ -267,19 +290,7 @@ async function main() {
 	const example1 = readFileSync(path.join(retrosDir, "2026-07-11.md"), "utf8");
 	const example2 = readFileSync(path.join(retrosDir, "2026-07-13.md"), "utf8");
 
-	const prevDate = findLatestRetroDate(date);
-	const prevActions = prevDate
-		? extractActionPoints(
-				readFileSync(path.join(retrosDir, `${prevDate}.md`), "utf8"),
-			)
-		: [];
-
 	const qaText = qa.map(({ q, a }) => `Q: ${q}\nA: ${a}`).join("\n\n");
-
-	console.log("이전 회고 완료 항목 판별 중 (claude 호출)...");
-	const completedActions = determineCompletedActions(prevActions, summary, qaText);
-	markActionsComplete(prevDate, completedActions);
-	const remainingActions = prevActions.filter((a) => !completedActions.includes(a));
 
 	const mdPrompt = `아래 형식과 정확히 동일한 구조로 ${date} 날짜의 하루 회고(KPT) 마크다운을 작성하라.
 
@@ -305,16 +316,25 @@ ${summary}
 사용자가 답변한 질문/답변:
 ${qaText}`;
 
-	console.log("\n회고 md 생성 중 (claude 호출)...");
+	console.log("\n🤖 회고 md 생성 중 (claude 호출)...");
 	const mdRaw = callClaude(mdPrompt);
-	const md = stripCodeFence(mdRaw);
+	const generatedMd = stripCodeFence(mdRaw);
+	const checkedLines = completedActions.map((a) => a.replace("- [ ]", "- [x]"));
+	const md = checkedLines.length
+		? generatedMd.replace(
+				/## 다음 액션\n/,
+				`## 다음 액션\n${checkedLines.join("\n")}\n`,
+			)
+		: generatedMd;
 
 	writeFileSync(outFile, md.endsWith("\n") ? md : `${md}\n`);
-	console.log(`\n생성 완료: ${outFile}`);
+	console.log(`\n🎉 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+	console.log(`   ✅ 생성 완료: ${outFile}`);
+	console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
 }
 
 main().catch((err) => {
-	rl.close();
-	console.error(err.message);
+	rl?.close();
+	console.error(`💥 ${err.message}`);
 	process.exit(1);
 });

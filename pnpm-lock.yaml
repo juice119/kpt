@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@clack/prompts':
+        specifier: ^1.7.0
+        version: 1.7.0
       astro:
         specifier: ^7.0.5
         version: 7.0.9(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.2)
