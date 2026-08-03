@@ -212,12 +212,15 @@ function callClaude(prompt) {
 		{
 			encoding: "utf8",
 			maxBuffer: 10 * 1024 * 1024,
+			timeout: 120_000,
 		},
 	);
-	if (res.status !== 0) {
-		throw new Error(
-			`claude 호출 실패: ${res.stderr?.trim() || res.error?.message}`,
-		);
+	if (res.status !== 0 || res.error) {
+		const detail =
+			res.error?.message ||
+			res.stderr?.trim() ||
+			(res.signal ? `signal ${res.signal}` : `exit code ${res.status}`);
+		throw new Error(`claude 호출 실패: ${detail}`);
 	}
 	return res.stdout.trim();
 }
