@@ -12,7 +12,8 @@
 		"retro": "node scripts/retro.mjs",
 		"test": "vitest run",
 		"test:watch": "vitest",
-		"check": "pnpm exec biome check . --fix"
+		"check": "pnpm exec biome check . --fix",
+		"prepare": "husky"
 	},
 	"dependencies": {
 		"@clack/prompts": "^1.7.0",
@@ -21,6 +22,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.2",
+		"husky": "^9.1.7",
 		"vitest": "^4.1.9"
 	}
 }
