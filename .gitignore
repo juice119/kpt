@@ -14,3 +14,5 @@ env/env.yml
 .DS_Store
 # Claude Code personal settings (launch.json은 공유)
 .claude/settings.local.json
+# Serena MCP 로컬 데이터
+.serena/
